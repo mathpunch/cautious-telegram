@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduCalc – Smart Learning Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f0e8;
+    --card: #fffdf7;
+    --border: #e0d8c8;
+    --ink: #1a1510;
+    --ink2: #5a5248;
+    --accent: #e8622a;
+    --accent2: #3a7bd5;
+    --green: #2e9e6b;
+    --yellow: #f5c842;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+    --radius: 18px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: 
+      radial-gradient(circle at 20% 20%, rgba(232,98,42,0.06) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(58,123,213,0.06) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  /* Decorative math symbols */
+  .bg-symbols {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0.04;
+  }
+  .bg-sym {
+    position: absolute;
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(40px, 8vw, 100px);
+    color: var(--ink);
+    animation: float 8s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(5deg); }
+  }
+
+  /* Header */
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+    position: relative;
+    z-index: 1;
+  }
+  .logo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--accent);
+    color: white;
+    padding: 6px 16px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(32px, 6vw, 54px);
+    color: var(--ink);
+    line-height: 1.1;
+    margin-bottom: 8px;
+  }
+  h1 em {
+    color: var(--accent);
+    font-style: italic;
+  }
+  .subtitle {
+    color: var(--ink2);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  /* Main layout */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 24px;
+    width: 100%;
+    max-width: 820px;
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (max-width: 680px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+  }
+
+  /* Calculator Card */
+  .calc-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow), 0 0 0 6px rgba(232,98,42,0.04);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .calc-header {
+    background: var(--ink);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .calc-title {
+    color: white;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.9;
+  }
+  .calc-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    opacity: 0.6;
+  }
+  .dot-r { background: #ff5f57; }
+  .dot-y { background: #febc2e; }
+  .dot-g { background: #28c840; }
+
+  /* Display */
+  .display-area {
+    background: #1a1510;
+    padding: 20px 24px 16px;
+    min-height: 110px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-end;
+    gap: 4px;
+    position: relative;
+  }
+  .display-expr {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+    min-height: 18px;
+    word-break: break-all;
+    text-align: right;
+  }
+  .display-main {
+    font-family: 'DM Mono', monospace;
+    font-size: 42px;
+    color: white;
+    text-align: right;
+    line-height: 1;
+    word-break: break-all;
+    transition: transform 0.1s;
+  }
+  .display-main.pop {
+    transform: scale(1.04);
+  }
+
+  /* Mode indicator */
+  .mode-tag {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--accent);
+    opacity: 0.8;
+  }
+
+  /* Keypad */
+  .keypad {
+    padding: 16px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  .key {
+    height: 60px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    transition: transform 0.08s, box-shadow 0.08s;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .key:active {
+    transform: scale(0.94);
+  }
+
+  .key-num {
+    background: white;
+    color: var(--ink);
+    border: 2px solid var(--border);
+    box-shadow: 0 3px 0 var(--border);
+  }
+  .key-num:hover {
+    background: #fffbf5;
+    border-color: #c8c0b0;
+    box-shadow: 0 3px 0 #c8c0b0;
+  }
+
+  .key-op {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 3px 0 #c04818;
+  }
+  .key-op:hover {
+    background: #d45520;
+    box-shadow: 0 3px 0 #a03810;
+  }
+
+  .key-func {
+    background: #e8e2d8;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 800;
+    box-shadow: 0 3px 0 #c8c0b0;
+  }
+  .key-func:hover {
+    background: #d8d0c4;
+  }
+
+  .key-equals {
+    background: var(--accent2);
+    color: white;
+    box-shadow: 0 3px 0 #2860b0;
+  }
+  .key-equals:hover {
+    background: #2e6bc0;
+  }
+
+  .key-zero { grid-column: span 2; }
+  .key-clear {
+    background: #fde8e0;
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 800;
+    box-shadow: 0 3px 0 #f0c0b0;
+    border: 2px solid #f8d0c0;
+  }
+
+  /* Formula hint strip */
+  .formula-strip {
+    background: #fff8f0;
+    border-top: 2px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .formula-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ink2);
+  }
+  .formula-chip {
+    background: white;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 3px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+  .formula-chip:hover {
+    background: var(--accent2);
+    color: white;
+    border-color: var(--accent2);
+  }
+
+  /* Bottom bar with code mode */
+  .bottom-bar {
+    padding: 12px 16px;
+    border-top: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #faf7f2;
+  }
+  .code-mode-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--ink);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.15s;
+    letter-spacing: 0.5px;
+  }
+  .code-mode-btn:hover {
+    background: var(--accent);
+    transform: translateY(-1px);
+  }
+  .code-icon {
+    font-size: 14px;
+  }
+  .version-tag {
+    font-size: 11px;
+    color: var(--ink2);
+    opacity: 0.6;
+    font-weight: 600;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .tip-card {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+  .tip-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .tip-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .tip-card h3 {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--ink);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .fact-text {
+    font-size: 13px;
+    color: var(--ink2);
+    line-height: 1.6;
+    font-weight: 600;
+  }
+  .fact-text strong {
+    color: var(--ink);
+  }
+
+  .formula-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .formula-table tr td {
+    padding: 5px 6px;
+    border-bottom: 1px solid var(--border);
+    color: var(--ink2);
+    font-weight: 600;
+  }
+  .formula-table tr td:first-child {
+    font-family: 'DM Mono', monospace;
+    color: var(--accent2);
+    font-weight: 500;
+  }
+  .formula-table tr:last-child td { border-bottom: none; }
+
+  .history-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 140px;
+    overflow-y: auto;
+  }
+  .history-list::-webkit-scrollbar { width: 4px; }
+  .history-list::-webkit-scrollbar-track { background: transparent; }
+  .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .history-item {
+    background: #f5f0e8;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--ink2);
+    cursor: pointer;
+    transition: 0.15s;
+    display: flex;
+    justify-content: space-between;
+  }
+  .history-item:hover { background: var(--border); }
+  .history-result { color: var(--accent); font-weight: 700; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(26,21,16,0.7);
+    backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal-overlay.active { display: flex; }
+
+  .modal-box {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 20px;
+    padding: 32px;
+    width: 90%;
+    max-width: 360px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    text-align: center;
+    animation: modalPop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes modalPop {
+    from { transform: scale(0.85) translateY(20px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .modal-icon {
+    width: 56px;
+    height: 56px;
+    background: var(--ink);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 24px;
+  }
+  .modal-box h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .modal-box p {
+    font-size: 13px;
+    color: var(--ink2);
+    margin-bottom: 20px;
+    font-weight: 600;
+  }
+  .pin-inputs {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .pin-input {
+    width: 52px;
+    height: 56px;
+    border: 2.5px solid var(--border);
+    border-radius: 12px;
+    background: #f5f0e8;
+    font-family: 'DM Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--ink);
+    outline: none;
+    transition: 0.15s;
+  }
+  .pin-input:focus {
+    border-color: var(--accent2);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(58,123,213,0.1);
+  }
+  .pin-input.error {
+    border-color: var(--accent);
+    background: #fde8e0;
+    animation: shake 0.3s ease;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+  .modal-btn {
+    background: var(--ink);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 28px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: 0.15s;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .modal-btn:hover { background: var(--accent); }
+  .modal-cancel {
+    background: none;
+    border: none;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    color: var(--ink2);
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .modal-cancel:hover { color: var(--accent); }
+
+  /* Code Mode - full screen embed */
+  #codeModeContainer {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: #000;
+  }
+  #codeModeContainer.active { display: block; }
+  #codeFrame {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  /* Hidden corner hotspot - long press on touch, hover+click on PC */
+  #exitHotspot {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 72px;
+    height: 72px;
+    z-index: 2100;
+    cursor: pointer;
+    display: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  #exitHotspot.holding::before {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2.5px solid rgba(255,255,255,0.5);
+    border-top-color: white;
+    animation: spinRing 3s linear forwards;
+  }
+  @keyframes spinRing {
+    0% { transform: rotate(0deg); opacity: 0.3; }
+    100% { transform: rotate(360deg); opacity: 1; }
+  }
+  #exitHotspot .tip {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(0,0,0,0.8);
+    color: rgba(255,255,255,0.85);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    border: 1px solid rgba(255,255,255,0.15);
+    letter-spacing: 0.5px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  #exitHotspot:hover .tip { opacity: 1; }
+  #codeModeContainer.active ~ #exitHotspot { display: block; }
+
+</style>
+</head>
+<body>
+
+<!-- Floating math symbols background -->
+<div class="bg-symbols">
+  <span class="bg-sym" style="top:5%;left:3%;animation-delay:0s">∑</span>
+  <span class="bg-sym" style="top:15%;left:88%;animation-delay:1s">π</span>
+  <span class="bg-sym" style="top:45%;left:5%;animation-delay:2s">∫</span>
+  <span class="bg-sym" style="top:70%;left:90%;animation-delay:0.5s">√</span>
+  <span class="bg-sym" style="top:85%;left:20%;animation-delay:1.5s">∞</span>
+  <span class="bg-sym" style="top:30%;left:75%;animation-delay:3s">Δ</span>
+  <span class="bg-sym" style="top:60%;left:50%;animation-delay:2.5s">θ</span>
+  <span class="bg-sym" style="top:10%;left:45%;animation-delay:0.8s">±</span>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="logo-badge">
+    <span>📐</span>
+    <span>EduCalc</span>
+  </div>
+  <h1>The Smart <em>Learning</em> Calculator</h1>
+  <p class="subtitle">Build number sense. Understand the math.</p>
+</header>
+
+<!-- Main Grid -->
+<div class="main-grid">
+
+  <!-- Calculator -->
+  <div class="calc-card">
+    <div class="calc-header">
+      <span class="calc-title">Scientific Calculator</span>
+      <div class="calc-dots">
+        <div class="dot dot-r"></div>
+        <div class="dot dot-y"></div>
+        <div class="dot dot-g"></div>
+      </div>
+    </div>
+
+    <div class="display-area">
+      <div class="mode-tag" id="modeTag">STANDARD</div>
+      <div class="display-expr" id="displayExpr"></div>
+      <div class="display-main" id="displayMain">0</div>
+    </div>
+
+    <div class="keypad">
+      <!-- Row 1: Functions -->
+      <button class="key key-func" onclick="keyFunc('sin(')">sin</button>
+      <button class="key key-func" onclick="keyFunc('cos(')">cos</button>
+      <button class="key key-func" onclick="keyFunc('tan(')">tan</button>
+      <button class="key key-func" onclick="keyFunc('Math.sqrt(')">√</button>
+
+      <!-- Row 2: More functions -->
+      <button class="key key-func" onclick="keyFunc('Math.PI')">π</button>
+      <button class="key key-func" onclick="keyFunc('Math.E')">e</button>
+      <button class="key key-func" onclick="keyFunc('^')">xⁿ</button>
+      <button class="key key-func" onclick="keyFunc('Math.log(')">log</button>
+
+      <!-- Row 3: Clear, parens, mod, divide -->
+      <button class="key key-clear" onclick="clearAll()">AC</button>
+      <button class="key key-func" onclick="keyFunc('(')">(</button>
+      <button class="key key-func" onclick="keyFunc(')')">)</button>
+      <button class="key key-op" onclick="keyOp('/')">÷</button>
+
+      <!-- Row 4: 7 8 9 × -->
+      <button class="key key-num" onclick="keyNum('7')">7</button>
+      <button class="key key-num" onclick="keyNum('8')">8</button>
+      <button class="key key-num" onclick="keyNum('9')">9</button>
+      <button class="key key-op" onclick="keyOp('*')">×</button>
+
+      <!-- Row 5: 4 5 6 - -->
+      <button class="key key-num" onclick="keyNum('4')">4</button>
+      <button class="key key-num" onclick="keyNum('5')">5</button>
+      <button class="key key-num" onclick="keyNum('6')">6</button>
+      <button class="key key-op" onclick="keyOp('-')">−</button>
+
+      <!-- Row 6: 1 2 3 + -->
+      <button class="key key-num" onclick="keyNum('1')">1</button>
+      <button class="key key-num" onclick="keyNum('2')">2</button>
+      <button class="key key-num" onclick="keyNum('3')">3</button>
+      <button class="key key-op" onclick="keyOp('+')">+</button>
+
+      <!-- Row 7: 0 . del = -->
+      <button class="key key-num key-zero" onclick="keyNum('0')">0</button>
+      <button class="key key-num" onclick="keyNum('.')">.</button>
+      <button class="key key-equals" onclick="calculate()">=</button>
+    </div>
+
+    <div class="formula-strip">
+      <span class="formula-label">Quick:</span>
+      <span class="formula-chip" onclick="setExpr('Math.PI * r^2')">πr²</span>
+      <span class="formula-chip" onclick="setExpr('(1/2) * b * h')">½bh</span>
+      <span class="formula-chip" onclick="setExpr('Math.sqrt(a^2 + b^2)')">a²+b²</span>
+      <span class="formula-chip" onclick="setExpr('Math.E')">Euler</span>
+    </div>
+
+    <div class="bottom-bar">
+      <button class="code-mode-btn" onclick="openCodeModal()">
+        <span class="code-icon">⌨</span>
+        Code Mode
+      </button>
+      <span class="version-tag">EduCalc v2.4</span>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <!-- Math Fact -->
+    <div class="tip-card">
+      <div class="tip-card-header">
+        <div class="tip-icon" style="background:#fff3e0;">💡</div>
+        <h3>Did You Know?</h3>
+      </div>
+      <p class="fact-text" id="mathFact">Loading fact...</p>
+    </div>
+
+    <!-- Key Formulas -->
+    <div class="tip-card">
+      <div class="tip-card-header">
+        <div class="tip-icon" style="background:#e8f4fd;">📘</div>
+        <h3>Key Formulas</h3>
+      </div>
+      <table class="formula-table">
+        <tr><td>A = πr²</td><td>Area of circle</td></tr>
+        <tr><td>E = mc²</td><td>Mass-energy</td></tr>
+        <tr><td>a²+b²=c²</td><td>Pythagorean</td></tr>
+        <tr><td>F = ma</td><td>Newton's 2nd</td></tr>
+        <tr><td>PV = nRT</td><td>Ideal gas</td></tr>
+        <tr><td>sinθ = o/h</td><td>Sine ratio</td></tr>
+      </table>
+    </div>
+
+    <!-- History -->
+    <div class="tip-card">
+      <div class="tip-card-header">
+        <div class="tip-icon" style="background:#f0faf4;">🕓</div>
+        <h3>Calculation History</h3>
+      </div>
+      <ul class="history-list" id="historyList">
+        <li style="font-size:12px;color:var(--ink2);text-align:center;padding:8px;">No calculations yet</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<!-- Password Modal -->
+<div class="modal-overlay" id="passwordModal">
+  <div class="modal-box">
+    <div class="modal-icon">🔐</div>
+    <h2>Code Mode Access</h2>
+    <p>Enter your 4-digit access code to unlock developer mode.</p>
+    <div class="pin-inputs">
+      <input class="pin-input" type="password" maxlength="1" id="p0" oninput="pinInput(0)" onkeydown="pinBack(0,event)">
+      <input class="pin-input" type="password" maxlength="1" id="p1" oninput="pinInput(1)" onkeydown="pinBack(1,event)">
+      <input class="pin-input" type="password" maxlength="1" id="p2" oninput="pinInput(2)" onkeydown="pinBack(2,event)">
+      <input class="pin-input" type="password" maxlength="1" id="p3" oninput="pinInput(3)" onkeydown="pinBack(3,event)">
+    </div>
+    <button class="modal-btn" onclick="checkPassword()">Unlock →</button>
+    <button class="modal-cancel" onclick="closeCodeModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- Code Mode Full Screen -->
+<div id="codeModeContainer">
+  <iframe id="codeFrame" src="about:blank" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+</div>
+<div id="exitHotspot"><span class="tip">hold to exit</span></div>
+
+<script>
+  // Calculator state
+  let expr = '';
+  let lastResult = null;
+  let history = [];
+
+  const displayMain = document.getElementById('displayMain');
+  const displayExpr = document.getElementById('displayExpr');
+
+  function updateDisplay() {
+    displayMain.textContent = expr || '0';
+    // Trim display if too long
+    if (displayMain.textContent.length > 14) {
+      displayMain.style.fontSize = '28px';
+    } else if (displayMain.textContent.length > 10) {
+      displayMain.style.fontSize = '34px';
+    } else {
+      displayMain.style.fontSize = '42px';
+    }
+  }
+
+  function pop() {
+    displayMain.classList.add('pop');
+    setTimeout(() => displayMain.classList.remove('pop'), 100);
+  }
+
+  function keyNum(n) {
+    if (expr === '0') expr = '';
+    expr += n;
+    updateDisplay();
+  }
+
+  function keyOp(op) {
+    expr += op;
+    updateDisplay();
+  }
+
+  function keyFunc(fn) {
+    expr += fn;
+    updateDisplay();
+  }
+
+  function clearAll() {
+    expr = '';
+    displayExpr.textContent = '';
+    updateDisplay();
+    pop();
+  }
+
+  function setExpr(e) {
+    expr = e;
+    updateDisplay();
+  }
+
+  function calculate() {
+    if (!expr) return;
+    try {
+      // Replace ^ with ** for exponentiation
+      let evalExpr = expr.replace(/\^/g, '**')
+        .replace(/sin\(/g, 'Math.sin(')
+        .replace(/cos\(/g, 'Math.cos(')
+        .replace(/tan\(/g, 'Math.tan(');
+      
+      // Safety check - only allow safe math
+      if (/[^0-9+\-*/().Math,sincotagqlrtPIEupde\s^]/.test(expr.replace(/Math\.(sin|cos|tan|sqrt|log|PI|E|pow|abs)/g, ''))) {
+        // allow through anyway for standard calc use
+      }
+      
+      const result = eval(evalExpr);
+      const rounded = parseFloat(result.toFixed(10));
+      
+      // Save to history
+      const entry = { expr: expr, result: rounded };
+      history.unshift(entry);
+      if (history.length > 8) history.pop();
+      updateHistory();
+
+      displayExpr.textContent = expr + ' =';
+      expr = String(rounded);
+      lastResult = rounded;
+      updateDisplay();
+      pop();
+    } catch(e) {
+      displayExpr.textContent = expr;
+      expr = 'Error';
+      updateDisplay();
+      setTimeout(() => { expr = ''; updateDisplay(); displayExpr.textContent = ''; }, 1500);
+    }
+  }
+
+  function updateHistory() {
+    const list = document.getElementById('historyList');
+    if (history.length === 0) {
+      list.innerHTML = '<li style="font-size:12px;color:var(--ink2);text-align:center;padding:8px;">No calculations yet</li>';
+      return;
+    }
+    list.innerHTML = history.map(h => 
+      `<li class="history-item" onclick="loadHistory('${h.result}')">
+        <span>${h.expr.length > 18 ? h.expr.slice(0,18)+'…' : h.expr}</span>
+        <span class="history-result">${h.result}</span>
+      </li>`
+    ).join('');
+  }
+
+  function loadHistory(val) {
+    expr = String(val);
+    updateDisplay();
+  }
+
+  // Keyboard support
+  document.addEventListener('keydown', (e) => {
+    if (document.getElementById('passwordModal').classList.contains('active')) return;
+    if (document.getElementById('codeModeContainer').classList.contains('active')) return;
+    if ('0123456789'.includes(e.key)) keyNum(e.key);
+    else if ('+-*/'.includes(e.key)) keyOp(e.key);
+    else if (e.key === '.') keyNum('.');
+    else if (e.key === 'Enter' || e.key === '=') calculate();
+    else if (e.key === 'Escape') clearAll();
+    else if (e.key === 'Backspace') { expr = expr.slice(0,-1); updateDisplay(); }
+  });
+
+  // Math facts
+  const facts = [
+    "<strong>Zero</strong> is the only number that cannot be represented in Roman numerals.",
+    "The word <strong>\"hundred\"</strong> comes from the Old Norse <em>hundrath</em>, which means 120, not 100!",
+    "<strong>Pi (π)</strong> has been calculated to over 100 trillion decimal places — and it never repeats.",
+    "A <strong>googol</strong> is 10¹⁰⁰, a 1 followed by 100 zeros. It inspired Google's name.",
+    "The sum of all numbers from 1 to 100 is <strong>5,050</strong> — discovered by Gauss at age 9.",
+    "<strong>Fibonacci numbers</strong> appear throughout nature: flower petals, pinecones, spiral galaxies.",
+    "There are more possible <strong>sudoku puzzles</strong> than atoms in the observable universe.",
+    "<strong>Euler's identity</strong> e^(iπ) + 1 = 0 combines the 5 most important numbers in math.",
+  ];
+
+  let factIndex = 0;
+  document.getElementById('mathFact').innerHTML = facts[Math.floor(Math.random() * facts.length)];
+  setInterval(() => {
+    factIndex = (factIndex + 1) % facts.length;
+    document.getElementById('mathFact').innerHTML = facts[factIndex];
+  }, 8000);
+
+  // Code mode / password
+  function openCodeModal() {
+    document.getElementById('passwordModal').classList.add('active');
+    setTimeout(() => document.getElementById('p0').focus(), 100);
+    // Clear inputs
+    ['p0','p1','p2','p3'].forEach(id => {
+      document.getElementById(id).value = '';
+      document.getElementById(id).classList.remove('error');
+    });
+  }
+
+  function closeCodeModal() {
+    document.getElementById('passwordModal').classList.remove('active');
+  }
+
+  function pinInput(idx) {
+    const current = document.getElementById('p'+idx);
+    if (current.value.length === 1 && idx < 3) {
+      document.getElementById('p'+(idx+1)).focus();
+    }
+  }
+
+  function pinBack(idx, e) {
+    if (e.key === 'Backspace' && !document.getElementById('p'+idx).value && idx > 0) {
+      document.getElementById('p'+(idx-1)).focus();
+    }
+    if (e.key === 'Enter') checkPassword();
+  }
+
+  function checkPassword() {
+    const pin = ['p0','p1','p2','p3'].map(id => document.getElementById(id).value).join('');
+    if (pin === '0000') {
+      closeCodeModal();
+      activateCodeMode();
+    } else {
+      // Shake all inputs
+      ['p0','p1','p2','p3'].forEach(id => {
+        const el = document.getElementById(id);
+        el.classList.add('error');
+        setTimeout(() => el.classList.remove('error'), 500);
+      });
+      // Clear and refocus
+      setTimeout(() => {
+        ['p0','p1','p2','p3'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('p0').focus();
+      }, 400);
+    }
+  }
+
+  function activateCodeMode() {
+    const container = document.getElementById('codeModeContainer');
+    const frame = document.getElementById('codeFrame');
+    const hotspot = document.getElementById('exitHotspot');
+
+    const embeddedHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>College Courses - Standard Library</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <style>
+        :root { --accent: #4da6ff; }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: #070b14; color: white; height: 100vh; overflow: hidden; }
+        
+        /* STARTUP PICKER */
+        #startupOverlay { position: fixed; inset: 0; background: #0b1220; display: none; align-items: center; justify-content: center; z-index: 5000; }
+        .startup-box { background: #111a2d; padding: 40px; border-radius: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 20px; border: 1px solid rgba(255,255,255,0.05); width: 90%; max-width: 600px; }
+        .startup-btn { padding: 20px; border-radius: 14px; cursor: pointer; text-align: center; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); transition: .25s; }
+        .startup-btn:hover { background: var(--accent); transform: translateY(-3px); color: #000; }
+        .count-pill { display: block; font-size: 12px; opacity: 0.6; margin-top: 5px; font-weight: 400; }
+
+        /* TOP BAR */
+        .top-bar-container { position: fixed; top: 15px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; z-index: 20; gap: 8px; }
+        .search-bar { height: 50px; padding: 0 18px; display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,.06); border-radius: 16px; border: 1px solid rgba(255,255,255,.08); backdrop-filter: blur(12px); }
+        .search-bar input { background: none; border: none; outline: none; color: white; font-size: 16px; width: 220px; }
+        #liveCount { font-size: 12px; background: var(--accent); color: #000; padding: 2px 8px; border-radius: 8px; font-weight: 800; }
+        #sysStatus { font-size: 10px; color: var(--accent); text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold; height: 15px; transition: 0.3s; }
+
+        /* SETTINGS */
+        #settingsBtn { position: fixed; top: 20px; right: 25px; width: 45px; height: 45px; border-radius: 12px; background: rgba(255,255,255,.1); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 30; }
+        #settingsOverlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .settings-panel { width: 340px; padding: 25px; border-radius: 18px; background: #101726; border: 1px solid rgba(255,255,255,.1); display: flex; flex-direction: column; gap: 20px; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; }
+        select { background: #1a2438; color: white; border: 1px solid #333; padding: 8px; border-radius: 8px; }
+
+        /* GRID */
+        #container { position: fixed; inset: 0; display: grid; grid-template-columns: repeat(auto-fill, 220px); justify-content: center; gap: 18px; padding-top: 110px; padding-left: 20px; padding-right: 20px; padding-bottom: 40px; overflow-y: auto; }
+        #container::-webkit-scrollbar { display: none; }
+        .zone-item { width: 220px; height: 175px; border-radius: 18px; position: relative; overflow: hidden; background: rgba(255,255,255,.06); cursor: pointer; transition: .25s; border: 1px solid transparent; }
+        .zone-item:hover { transform: translateY(-6px); border-color: var(--accent); }
+        .zone-item img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(0.7); transition: 0.3s; }
+        .zone-item:hover img { filter: brightness(0.9); }
+        .zone-item button { position: absolute; bottom: 12px; left: 14px; background: none; border: none; color: white; font-size: 15px; font-weight: 700; text-shadow: 0 2px 12px rgba(0,0,0,0.8); pointer-events: none; width: 85%; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* VIEWER */
+        #zoneViewer { position: fixed; inset: 0; background: #000; display: none; flex-direction: column; z-index: 1000; }
+        #zoneFrame { flex: 1; border: none; }
+        #closeBtn { position: absolute; top: 20px; right: 25px; width: 45px; height: 45px; border-radius: 12px; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1001; color: white; }
+        #loaderBar { position: absolute; top: 0; left: 0; width: 0%; height: 4px; background: var(--accent); transition: width 0.2s; }
+
+        /* PARTNER POPUP */
+        #partnerPopup {
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
+            animation: fadeInBg 0.4s ease;
+        }
+        @keyframes fadeInBg { from { opacity: 0; } to { opacity: 1; } }
+        .partner-card {
+            background: linear-gradient(135deg, #0f1c32, #111a2d); border: 1px solid rgba(77, 166, 255, 0.35);
+            border-radius: 22px; padding: 38px 44px; max-width: 420px; width: 90%; text-align: center;
+            box-shadow: 0 0 60px rgba(77, 166, 255, 0.15), 0 20px 60px rgba(0,0,0,0.6);
+            animation: slideUp 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .partner-icon { width: 62px; height: 62px; border-radius: 16px; background: linear-gradient(135deg, var(--accent), #0066cc); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 26px; }
+        .partner-card h2 { margin: 0 0 10px; font-size: 20px; font-weight: 700; color: white; letter-spacing: -0.3px; }
+        .partner-card p { margin: 0 0 28px; font-size: 15px; color: rgba(255,255,255,0.6); line-height: 1.6; }
+        .partner-card p span { color: var(--accent); font-weight: 700; }
+        .partner-close-btn { background: var(--accent); color: #000; border: none; border-radius: 12px; padding: 12px 32px; font-size: 14px; font-weight: 800; cursor: pointer; transition: 0.2s; letter-spacing: 0.3px; }
+        .partner-close-btn:hover { opacity: 0.85; transform: scale(1.03); }
+    </style>
+</head>
+<body>
+<div id="partnerPopup">
+    <div class="partner-card">
+        <h2>A Special Thanks</h2>
+        <p>Thanks to my partner <span>Sea Bean</span> for the games!</p>
+        <button class="partner-close-btn" onclick="document.getElementById('partnerPopup').style.display='none'">Let's Go &nbsp;\u2192</button>
+    </div>
+</div>
+<div id="startupOverlay">
+    <div class="startup-box" id="startupBox"></div>
+</div>
+<div class="top-bar-container">
+    <div id="sysStatus"></div>
+    <div class="search-bar">
+        <i class="fas fa-gamepad" style="opacity: 0.5"></i>
+        <input id="searchBar" placeholder="Search library..." oninput="filterZones()">
+        <span id="liveCount">0</span>
+    </div>
+</div>
+<div id="settingsBtn" onclick="toggleSettings()">
+    <i class="fas fa-gear"></i>
+</div>
+<div id="settingsOverlay" onclick="toggleSettings(event)">
+    <div class="settings-panel" onclick="event.stopPropagation()">
+        <h3>Settings</h3>
+        <div class="setting-row">
+            <span>Accent Color</span>
+            <input type="color" id="colorPicker" onchange="changeColor(this.value)">
+        </div>
+        <div class="setting-row">
+            <span>Library Source</span>
+            <select id="sourceSelect" onchange="toggleSource(this.value)"></select>
+        </div>
+    </div>
+</div>
+<div id="container"></div>
+<div id="zoneViewer">
+    <div id="closeBtn" onclick="closeViewer()"><i class="fas fa-times"></i></div>
+    <div id="loaderBar"></div>
+    <iframe id="zoneFrame"></iframe>
+</div>
+<script>
+    const CONFIG = { LOCAL_KEY: "saturn_nexus_storage_v14" };
+    const sources = [
+        { name: "GN Math", type: "json", json: "https://cdn.jsdelivr.net/gh/gn-math/assets@latest/zones.json", cover: "https://cdn.jsdelivr.net/gh/gn-math/covers@main/", html: "https://cdn.jsdelivr.net/gh/gn-math/html@main/" }
+    ];
+    let zones = [];
+    let currentSource = 0;
+    function cleanDataProcess(rawFiles) {
+        const statusEl = document.getElementById("sysStatus");
+        statusEl.innerText = "Indexing Files...";
+        const seen = new Set();
+        const processed = rawFiles.map(file => {
+            let cleanName = file.name.replace(/\\.html$/i, '').replace(/[-_]/g, ' ').replace(/\\b\\w/g, char => char.toUpperCase());
+            if (seen.has(cleanName)) return null;
+            seen.add(cleanName);
+            return { ...file, name: cleanName };
+        }).filter(item => item !== null);
+        processed.sort((a, b) => a.name.localeCompare(b.name));
+        statusEl.innerText = "Ready";
+        setTimeout(() => statusEl.innerText = "", 2000);
+        return processed;
+    }
+    async function init() {
+        const savedColor = localStorage.getItem("accentColor") || "#4da6ff";
+        document.documentElement.style.setProperty('--accent', savedColor);
+        document.getElementById("colorPicker").value = savedColor;
+        const startupBox = document.getElementById("startupBox");
+        const sourceSelect = document.getElementById("sourceSelect");
+        startupBox.innerHTML = "";
+        sourceSelect.innerHTML = "";
+        sources.forEach((s, i) => {
+            const btn = document.createElement("div");
+            btn.className = "startup-btn";
+            btn.innerHTML = \`<b>\${s.name}</b><span class="count-pill" id="count-\${i}">Enter Library</span>\`;
+            btn.onclick = () => chooseStartup(i);
+            startupBox.appendChild(btn);
+            const opt = document.createElement("option");
+            opt.value = i;
+            opt.innerText = s.name;
+            sourceSelect.appendChild(opt);
+        });
+        document.getElementById("startupOverlay").style.display = "flex";
+    }
+    async function loadSource() {
+        const container = document.getElementById("container");
+        container.innerHTML = "<p style='grid-column:1/-1; text-align:center; opacity:0.5; margin-top:50px;'>Syncing Library...</p>";
+        const s = sources[currentSource];
+        try {
+            if (s.type === "json") {
+                const r = await fetch(s.json);
+                zones = await r.json();
+            }
+            displayZones(zones);
+        } catch (err) { 
+            console.error(err);
+            container.innerHTML = "<p style='grid-column:1/-1; text-align:center; color:red;'>Sync Failed. Check Internet.</p>"; 
+        }
+    }
+    function displayZones(list) {
+        const container = document.getElementById("container");
+        container.innerHTML = "";
+        document.getElementById("liveCount").innerText = list.length;
+        const s = sources[currentSource];
+        list.forEach(z => {
+            const d = document.createElement("div");
+            d.className = "zone-item";
+            d.onclick = () => openZone(z);
+            const img = document.createElement("img");
+            let rc = z.cover || "";
+            img.src = rc.includes("{COVER_URL}") ? rc.replace("{COVER_URL}", s.cover) : s.cover + rc.replace(/^\\//, "");
+            const b = document.createElement("button");
+            b.textContent = z.name;
+            d.append(img, b);
+            container.appendChild(d);
+        });
+    }
+    function filterZones() {
+        const q = document.getElementById("searchBar").value.toLowerCase();
+        displayZones(zones.filter(z => z.name && z.name.toLowerCase().includes(q)));
+    }
+    function openZone(z) {
+        const s = sources[currentSource];
+        let finalURL = z.isDirect ? z.url : (z.url.includes("{HTML_URL}") ? z.url.replace("{HTML_URL}", s.html) : s.html + z.url.replace(/^\\//, ""));
+        document.getElementById("zoneViewer").style.display = "flex";
+        document.getElementById("loaderBar").style.width = "40%";
+        fetch(finalURL).then(r => r.text()).then(html => {
+            document.getElementById("loaderBar").style.width = "100%";
+            const doc = document.getElementById("zoneFrame").contentWindow.document;
+            doc.open(); doc.write(html); doc.close();
+            setTimeout(() => document.getElementById("loaderBar").style.width = "0%", 400);
+        }).catch(() => {
+            document.getElementById("zoneFrame").src = finalURL;
+            document.getElementById("loaderBar").style.width = "100%";
+        });
+    }
+    function chooseStartup(idx) {
+        currentSource = idx;
+        localStorage.setItem("sourceIndex", idx);
+        document.getElementById("sourceSelect").value = idx;
+        document.getElementById("startupOverlay").style.display = "none";
+        loadSource();
+    }
+    function toggleSettings(e) {
+        const s = document.getElementById("settingsOverlay");
+        if (e && e.target !== s) return;
+        s.style.display = s.style.display === "flex" ? "none" : "flex";
+    }
+    function changeColor(c) { document.documentElement.style.setProperty('--accent', c); localStorage.setItem("accentColor", c); }
+    function toggleSource(v) { currentSource = parseInt(v); localStorage.setItem("sourceIndex", v); loadSource(); }
+    function closeViewer() { document.getElementById("zoneViewer").style.display = "none"; document.getElementById("zoneFrame").src = "about:blank"; }
+    window.addEventListener('DOMContentLoaded', init);
+<\/script>
+</body>
+</html>`;
+
+    const blob = new Blob([embeddedHTML], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    frame.src = url;
+
+    container.classList.add('active');
+    hotspot.style.display = 'block';
+  }
+
+  function exitCodeMode() {
+    const container = document.getElementById('codeModeContainer');
+    const frame = document.getElementById('codeFrame');
+    const hotspot = document.getElementById('exitHotspot');
+    container.classList.remove('active');
+    hotspot.style.display = 'none';
+    hotspot.classList.remove('holding');
+    frame.src = 'about:blank';
+  }
+
+  // Long-press corner hotspot — works on touch AND mouse
+  (function setupExitHotspot() {
+    const hotspot = document.getElementById('exitHotspot');
+    let holdTimer = null;
+    const HOLD_MS = 3000;
+
+    function startHold() {
+      hotspot.classList.add('holding');
+      holdTimer = setTimeout(() => {
+        exitCodeMode();
+      }, HOLD_MS);
+    }
+    function cancelHold() {
+      clearTimeout(holdTimer);
+      hotspot.classList.remove('holding');
+    }
+
+    // Mouse
+    hotspot.addEventListener('mousedown', startHold);
+    hotspot.addEventListener('mouseup', cancelHold);
+    hotspot.addEventListener('mouseleave', cancelHold);
+
+    // Touch
+    hotspot.addEventListener('touchstart', (e) => { e.preventDefault(); startHold(); }, { passive: false });
+    hotspot.addEventListener('touchend', cancelHold);
+    hotspot.addEventListener('touchcancel', cancelHold);
+  })();
+
+  // Triple-Escape on PC keyboard as bonus
+  let escCount = 0, escTimer = null;
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('codeModeContainer').classList.contains('active')) {
+      escCount++;
+      clearTimeout(escTimer);
+      escTimer = setTimeout(() => { escCount = 0; }, 600);
+      if (escCount >= 3) { escCount = 0; exitCodeMode(); }
+    }
+  });
+</script>
+</body>
+</html>
